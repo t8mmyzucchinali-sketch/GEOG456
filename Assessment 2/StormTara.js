@@ -1,0 +1,17 @@
+var storm =
+{
+"type": "FeatureCollection",
+"name": "StormTara",
+"features": [
+{ "type": "Feature", "properties": { "STORMNAME": "TWENTY-TWO", "DTG": 2018101412.0, "YEAR": 2018.0, "MONTH": "10", "DAY": 14.0, "HHMM": "1200", "MSLP": 1006.0, "BASIN": "ep", "STORMNUM": 22.0, "STORMTYPE": "TD", "INTENSITY": 30.0, "SS": 0.0, "LAT": 17.0, "LON": -102.8 }, "geometry": { "type": "Point", "coordinates": [ -102.8, 17.0 ] } },
+{ "type": "Feature", "properties": { "STORMNAME": "TWENTY-TWO", "DTG": 2018101418.0, "YEAR": 2018.0, "MONTH": "10", "DAY": 14.0, "HHMM": "1800", "MSLP": 1006.0, "BASIN": "ep", "STORMNUM": 22.0, "STORMTYPE": "TD", "INTENSITY": 30.0, "SS": 0.0, "LAT": 17.2, "LON": -103.4 }, "geometry": { "type": "Point", "coordinates": [ -103.4, 17.2 ] } },
+{ "type": "Feature", "properties": { "STORMNAME": "TWENTY-TWO", "DTG": 2018101500.0, "YEAR": 2018.0, "MONTH": "10", "DAY": 15.0, "HHMM": "0000", "MSLP": 1005.0, "BASIN": "ep", "STORMNUM": 22.0, "STORMTYPE": "TD", "INTENSITY": 30.0, "SS": 0.0, "LAT": 17.3, "LON": -103.8 }, "geometry": { "type": "Point", "coordinates": [ -103.8, 17.3 ] } },
+{ "type": "Feature", "properties": { "STORMNAME": "TWENTY-TWO", "DTG": 2018101506.0, "YEAR": 2018.0, "MONTH": "10", "DAY": 15.0, "HHMM": "0600", "MSLP": 1003.0, "BASIN": "ep", "STORMNUM": 22.0, "STORMTYPE": "TS", "INTENSITY": 35.0, "SS": 0.0, "LAT": 17.6, "LON": -104.1 }, "geometry": { "type": "Point", "coordinates": [ -104.1, 17.6 ] } },
+{ "type": "Feature", "properties": { "STORMNAME": "TARA", "DTG": 2018101512.0, "YEAR": 2018.0, "MONTH": "10", "DAY": 15.0, "HHMM": "1200", "MSLP": 1001.0, "BASIN": "ep", "STORMNUM": 22.0, "STORMTYPE": "TS", "INTENSITY": 40.0, "SS": 0.0, "LAT": 17.9, "LON": -104.2 }, "geometry": { "type": "Point", "coordinates": [ -104.2, 17.9 ] } },
+{ "type": "Feature", "properties": { "STORMNAME": "TARA", "DTG": 2018101518.0, "YEAR": 2018.0, "MONTH": "10", "DAY": 15.0, "HHMM": "1800", "MSLP": 1000.0, "BASIN": "ep", "STORMNUM": 22.0, "STORMTYPE": "TS", "INTENSITY": 45.0, "SS": 0.0, "LAT": 18.2, "LON": -104.2 }, "geometry": { "type": "Point", "coordinates": [ -104.2, 18.2 ] } },
+{ "type": "Feature", "properties": { "STORMNAME": "TARA", "DTG": 2018101600.0, "YEAR": 2018.0, "MONTH": "10", "DAY": 16.0, "HHMM": "0000", "MSLP": 995.0, "BASIN": "ep", "STORMNUM": 22.0, "STORMTYPE": "TS", "INTENSITY": 55.0, "SS": 0.0, "LAT": 18.4, "LON": -104.3 }, "geometry": { "type": "Point", "coordinates": [ -104.3, 18.4 ] } },
+{ "type": "Feature", "properties": { "STORMNAME": "TARA", "DTG": 2018101606.0, "YEAR": 2018.0, "MONTH": "10", "DAY": 16.0, "HHMM": "0600", "MSLP": 998.0, "BASIN": "ep", "STORMNUM": 22.0, "STORMTYPE": "TS", "INTENSITY": 50.0, "SS": 0.0, "LAT": 18.5, "LON": -104.4 }, "geometry": { "type": "Point", "coordinates": [ -104.4, 18.5 ] } },
+{ "type": "Feature", "properties": { "STORMNAME": "TARA", "DTG": 2018101612.0, "YEAR": 2018.0, "MONTH": "10", "DAY": 16.0, "HHMM": "1200", "MSLP": 1001.0, "BASIN": "ep", "STORMNUM": 22.0, "STORMTYPE": "TS", "INTENSITY": 40.0, "SS": 0.0, "LAT": 18.7, "LON": -104.6 }, "geometry": { "type": "Point", "coordinates": [ -104.6, 18.7 ] } },
+{ "type": "Feature", "properties": { "STORMNAME": "TARA", "DTG": 2018101618.0, "YEAR": 2018.0, "MONTH": "10", "DAY": 16.0, "HHMM": "1800", "MSLP": 1003.0, "BASIN": "ep", "STORMNUM": 22.0, "STORMTYPE": "TS", "INTENSITY": 35.0, "SS": 0.0, "LAT": 18.9, "LON": -104.9 }, "geometry": { "type": "Point", "coordinates": [ -104.9, 18.9 ] } }
+]
+}
