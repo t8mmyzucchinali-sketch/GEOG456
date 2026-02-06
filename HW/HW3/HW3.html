@@ -1,0 +1,72 @@
+<html>
+    <head>
+        <title>HW3</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+        <script src="./USStatesCentroids.js" ></script>
+    </head>
+    <body>
+    US States
+    <div id="mapid"></div>
+    
+    <style>
+        #mapid{ width: 900px; height: 500px; }
+    </style>
+    <script>  
+
+
+    let size = 50
+        function circleIcon (size){
+            var geojsonMarkerOptions = {
+            radius: size/10,
+            fillColor: "#ff7800",
+            color: "#000",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+            };
+            return geojsonMarkerOptions;
+        }
+
+    var map = L.map('mapid').setView([49.8283, -98.5795], 2.5); // YOU CAN CHANGE THE ZOOM
+
+    // this line is creating the variable map by  initializing the L.map class (a Leaflet class) with the mapid element that we created before. setView is a method that can be applied to the class L.map : you can give it a latitude, longitude and a zoom.  The higher the value of the zoom, the finer the initial scale of the map. 
+
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
+
+    var esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+	    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
+    });
+ 
+    var USStatesLayer = L.geoJSON(USStates, {
+    pointToLayer: function (feature, latlng) {
+        return L.circleMarker(latlng, circleIcon(size)).bindPopup("State: " + feature.properties.NAME);
+    }
+}).addTo(map); 
+     
+    var baseMaps = {
+        "OpenStreetMap": osm,
+        "Esri World Street Map": esri
+    };
+
+    var overlayMaps = {
+        "US States": USStatesLayer
+    };
+
+    var layerControl = L.control.layers(baseMaps, overlayMaps).addTo(map);
+ 
+
+    var customPopup = "UNC Well<br/><img src='./data/Beryl 2024-07-02 1230Z - Hurricane Beryl - Wikipedia_files/Beryl_2024-07-02_1230Z_003.jpg' width='100px'/>";
+    var n = 0;
+
+
+    // end of script
+    </script>
+    </body>
+</html>
