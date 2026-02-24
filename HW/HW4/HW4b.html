@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>HW4</title>
+</head>
+<style>
+  table {
+  font-family: Tahoma, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+  border-radius: 8px; 
+  overflow: hidden; 
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 10px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}
+
+.high {
+  background-color: green;
+}
+.low {
+  background-color: red;
+}
+</style>
+<body>
+
+<h1>HW4b</h1>
+
+<script src="Fires.js"></script>
+
+<h2 style="font-family: 'Verdana', sans-serif; color: #007acc;" >United States Wild Fires</h2>
+
+<table id="mytable">
+  <tr>
+    <th>Date</th>
+    <th>Confidence</th>
+  </tr>
+  
+</table>
+</script>
+
+<script>
+  var x = document.getElementById('mytable')
+  
+  data.features.forEach(feature => {makeCell(feature.properties)});
+
+    function makeCell(e) {
+      var myNewRow = document.createElement('tr');
+      var myNewCell1 = document.createElement('td');
+      var myNewCell2 = document.createElement('td');
+
+      myNewCell1.innerHTML = e.ACQ_DATE;
+      myNewCell2.innerHTML = e.CONFIDENCE;
+
+      // myNewCell2.style.backgroundColor = getBackgroundColor(e.generation_gwh_2019)
+      myNewCell2.className = getClassName(e.CONFIDENCE)
+
+    myNewRow.append(myNewCell1);
+    myNewRow.append(myNewCell2);
+    x.append(myNewRow);
+
+  } 
+
+// console.log(feature.properties);
+
+function getBackgroundColor(d){
+  return d > 60 ? 'green' : 'red';
+}
+
+function getClassName(d){
+  return d > 60 ? 'high' : 'low';
+}
+</script>
+
+</body>
+</html>
