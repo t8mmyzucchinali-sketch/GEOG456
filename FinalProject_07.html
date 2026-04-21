@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Historical Solar Capacity (2000 - 2024)</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { margin: 0; background: #020205; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+        #map-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; cursor: grab; }
+        #map-container:active { cursor: grabbing; }
+        
+        /* Map Layers */
+        .sphere { fill: #0a0a14; stroke: #1a1a24; stroke-width: 1px; }
+        .graticule { fill: none; stroke: #1a1a24; stroke-width: 0.5px; stroke-dasharray: 2,2; }
+        
+        .country { 
+            fill: #15151a; 
+            stroke: #2a2a35; 
+            stroke-width: 0.5px; 
+            transition: fill 0.3s ease;
+        }
+        .country:hover {
+            stroke: #fff;
+            stroke-width: 1px;
+            z-index: 100; 
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: rgba(15, 15, 25, 0.95);
+            border: 1px solid #ffd700;
+            padding: 12px 15px;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            transform: translate(-50%, -120%);
+            transition: opacity 0.2s ease;
+        }
+        .tooltip-country { font-size: 1.1em; font-weight: bold; margin-bottom: 5px; display: block; border-bottom: 1px solid #444; padding-bottom: 5px;}
+        .tooltip-val { font-family: monospace; font-size: 1.5em; color: #ffd700; font-weight: bold; }
+
+        /* UI Styling */
+        .ui { position: absolute; bottom: 30px; left: 30px; background: rgba(15, 15, 25, 0.95); padding: 20px; border-radius: 12px; border: 1px solid #333; backdrop-filter: blur(10px); z-index: 10; width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        .dashboard { position: absolute; top: 30px; right: 30px; background: rgba(15, 15, 25, 0.95); padding: 20px; border-radius: 12px; border: 1px solid #ffd700; min-width: 250px; z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        
+        .leaderboard { margin-top: 15px; font-size: 0.9em; border-top: 1px solid #444; padding-top: 10px; line-height: 1.8; }
+        .gen-value { font-family: monospace; font-size: 2.8em; color: #ffd700; font-weight: bold; display: block; text-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
+        #year-label { font-family: monospace; font-size: 3.5em; color: #ffd700; font-weight: bold; margin-bottom: 5px; display: block; text-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
+        
+        input[type=range] { width: 100%; accent-color: #ffd700; cursor: pointer; margin-top: 10px; margin-bottom: 15px; }
+        
+        #play-btn { background: #ffd700; color: #000; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.1em; transition: all 0.2s; box-shadow: 0 4px 10px rgba(255, 215, 0, 0.2); }
+        #play-btn:hover { background: #fff200; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(255, 215, 0, 0.4); }
+
+        #error-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff4444; font-size: 1.2em; text-align: center; display: none; background: rgba(10,10,15,0.95); padding: 30px; border-radius: 15px; border: 1px solid #ff4444; z-index: 9999; box-shadow: 0 10px 50px rgba(0,0,0,0.8); line-height: 1.6;}
+    </style>
+</head>
+<body>
+
+<div id="tooltip" class="tooltip">
+    <span id="tt-country" class="tooltip-country">Country</span>
+    <span id="tt-val" class="tooltip-val">0.00</span> <span style="color:#888; font-size:0.8em">GW</span>
+</div>
+
+<div id="error-msg">
+    <h2>⚠️ Network Blocked</h2>
+    Your browser's security rules blocked the map data from downloading because you are opening this file locally (file:///).<br><br>
+    <b>To fix this immediately:</b><br>
+    1. Download <a href="https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson" target="_blank" style="color:#ffd700;">this world.geojson file</a>.<br>
+    2. Save it in the exact same folder as your HTML file.<br>
+    3. Change line 114 in this code to exactly: <code style="background:#333; padding:2px 5px; border-radius:4px;">d3.json("world.geojson")</code>
+</div>
+
+<div id="map-container"></div>
+
+<div class="dashboard">
+    <span style="color:#888; font-size:0.75em; font-weight: bold; letter-spacing: 1.5px;">GLOBAL CAPACITY</span>
+    <span id="global-gen" class="gen-value">0.00</span>
+    <span style="color:#888; font-size:0.8em; font-family: monospace;">Gigawatts (GW)</span>
+    <div id="leaderboard" class="leaderboard"></div>
+</div>
+
+<div class="ui">
+    <span id="year-label">2000</span>
+    <input type="range" id="slider" min="2000" max="2024" value="2000" step="1">
+    <button id="play-btn">▶ Play Timeline</button>
+</div>
+
+<script>
+    const width = window.innerWidth, height = window.innerHeight;
+    
+    // Historical Data (2000 - 2024) in GW
+    const historicalData = {
+        "CAN": {"name": "Canada", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.002, 0.002, 0.005, 0.009, 0.062, 0.216, 0.554, 0.87, 1.302, 2.108, 2.877, 3.058, 3.419, 3.719, 4.007, 4.379, 5.261, 5.439, 5.884, 6.105]}, 
+        "MEX": {"name": "Mexico", "history": [0.014, 0.015, 0.016, 0.016, 0.016, 0.016, 0.016, 0.019, 0.019, 0.025, 0.03, 0.042, 0.073, 0.109, 0.174, 0.295, 0.606, 1.072, 2.77, 6.247, 7.158, 8.927, 9.356, 10.91, 11.992]}, 
+        "USA": {"name": "US", "history": [0.594, 0.599, 0.643, 0.681, 0.752, 0.894, 1.099, 1.439, 1.618, 2.087, 3.382, 5.644, 8.613, 13.245, 18.112, 24.237, 35.434, 43.77, 51.987, 61.587, 76.441, 95.391, 114.361, 139.205, 177.47]}, 
+        "ARG": {"name": "Argentina", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.003, 0.004, 0.006, 0.011, 0.014, 0.014, 0.014, 0.014, 0.014, 0.196, 0.446, 0.768, 1.077, 1.113, 1.405, 1.741]}, 
+        "BRA": {"name": "Brazil", "history": [0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.002, 0.003, 0.003, 0.008, 0.009, 0.016, 0.024, 0.049, 0.136, 1.21, 2.465, 4.706, 8.482, 14.511, 25.399, 37.94, 53.113]}, 
+        "CHL": {"name": "Chile", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.002, 0.015, 0.221, 0.576, 1.125, 1.724, 2.298, 2.72, 3.288, 4.712, 6.902, 8.885, 11.054]}, 
+        "HND": {"name": "Honduras", "history": [0.002, 0.002, 0.002, 0.002, 0.002, 0.003, 0.003, 0.003, 0.003, 0.004, 0.004, 0.004, 0.005, 0.005, 0.005, 0.396, 0.412, 0.455, 0.515, 0.518, 0.525, 0.529, 0.529, 0.529, 0.554]}, 
+        "DOM": {"name": "The Dominican Republic", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.003, 0.008, 0.015, 0.024, 0.071, 0.095, 0.191, 0.335, 0.386, 0.584, 0.735, 1.077, 1.423]}, 
+        "AUT": {"name": "Austria", "history": [0.005, 0.007, 0.009, 0.023, 0.027, 0.024, 0.025, 0.027, 0.033, 0.052, 0.092, 0.178, 0.341, 0.63, 0.79, 0.94, 1.1, 1.272, 1.457, 1.703, 2.037, 2.771, 3.757, 6.331, 8.481]}, 
+        "BEL": {"name": "Belgium", "history": [0.0, 0.0, 0.001, 0.001, 0.001, 0.002, 0.002, 0.02, 0.062, 0.386, 0.84, 1.865, 2.595, 2.864, 2.977, 3.108, 3.291, 3.6, 3.963, 4.523, 5.453, 5.934, 6.781, 8.352, 9.752]}, 
+        "BGR": {"name": "Bulgaria", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.002, 0.025, 0.154, 0.922, 1.039, 1.029, 1.028, 1.03, 1.031, 1.033, 1.044, 1.1, 1.275, 1.737, 2.908, 3.908]}, 
+        "CZE": {"name": "Czech Republic", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.001, 0.004, 0.04, 0.465, 1.727, 1.913, 2.022, 2.063, 2.067, 2.075, 2.068, 2.062, 2.068, 2.085, 2.124, 2.177, 2.404, 3.251, 4.159]}, 
+        "DNK": {"name": "Denmark", "history": [0.001, 0.001, 0.002, 0.002, 0.002, 0.003, 0.003, 0.003, 0.003, 0.005, 0.007, 0.017, 0.402, 0.571, 0.607, 0.782, 0.851, 0.906, 0.998, 1.08, 1.304, 1.704, 3.07, 3.529, 3.945]}, 
+        "FRA": {"name": "France", "history": [0.007, 0.007, 0.008, 0.009, 0.011, 0.013, 0.015, 0.026, 0.08, 0.277, 1.044, 2.989, 4.301, 5.16, 5.861, 6.82, 7.319, 8.1, 9.032, 10.013, 11.133, 13.446, 14.722, 17.399, 21.528]}, 
+        "DEU": {"name": "Germany", "history": [0.0, 0.0, 0.0, 0.435, 1.105, 2.056, 2.899, 4.17, 6.12, 10.566, 18.006, 25.832, 33.77, 36.283, 37.398, 38.601, 39.908, 41.404, 44.035, 47.487, 51.785, 57.463, 61.188, 74.882, 89.943]}, 
+        "GRC": {"name": "Greece", "history": [0.0, 0.001, 0.001, 0.001, 0.001, 0.001, 0.005, 0.009, 0.012, 0.046, 0.202, 0.612, 1.536, 2.579, 2.596, 2.604, 2.604, 2.552, 2.591, 2.754, 3.174, 4.073, 5.104, 6.689, 9.269]}, 
+        "HUN": {"name": "Hungary", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.001, 0.002, 0.004, 0.012, 0.035, 0.089, 0.172, 0.235, 0.344, 0.728, 1.4, 2.131, 2.968, 4.235, 5.91, 7.699]}, 
+        "ITA": {"name": "Italy", "history": [0.019, 0.02, 0.022, 0.026, 0.031, 0.034, 0.045, 0.11, 0.483, 1.264, 3.597, 13.042, 16.659, 18.032, 18.441, 18.742, 19.116, 19.504, 19.916, 20.625, 21.359, 22.286, 24.56, 29.356, 36.013]}, 
+        "LTU": {"name": "Lithuania", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.007, 0.066, 0.067, 0.067, 0.068, 0.075, 0.089, 0.13, 0.244, 0.422, 0.738, 1.324, 2.567]}, 
+        "NLD": {"name": "Netherlands", "history": [0.013, 0.021, 0.026, 0.046, 0.05, 0.051, 0.053, 0.054, 0.059, 0.069, 0.09, 0.149, 0.287, 0.65, 1.007, 1.526, 2.135, 2.911, 4.608, 7.228, 11.11, 14.823, 17.356, 21.275, 24.048]}, 
+        "POL": {"name": "Poland", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.001, 0.002, 0.026, 0.103, 0.178, 0.277, 0.536, 1.495, 3.795, 7.091, 11.063, 16.428, 20.199]}, 
+        "PRT": {"name": "Portugal", "history": [0.001, 0.001, 0.001, 0.002, 0.002, 0.002, 0.003, 0.024, 0.059, 0.115, 0.134, 0.174, 0.24, 0.298, 0.417, 0.452, 0.533, 0.619, 0.717, 0.97, 1.191, 1.817, 2.817, 4.04, 5.808]}, 
+        "ROU": {"name": "Romania", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.041, 0.761, 1.293, 1.326, 1.372, 1.374, 1.386, 1.398, 1.383, 1.394, 1.809, 2.988, 4.688]}, 
+        "SVK": {"name": "Slovakia", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.019, 0.496, 0.513, 0.533, 0.533, 0.533, 0.533, 0.528, 0.471, 0.59, 0.535, 0.537, 0.549, 0.593, 0.867]}, 
+        "SVN": {"name": "Slovenia", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.001, 0.004, 0.012, 0.057, 0.142, 0.187, 0.224, 0.239, 0.232, 0.247, 0.247, 0.278, 0.37, 0.461, 0.626, 1.031, 1.309]}, 
+        "ESP": {"name": "Spain", "history": [0.019, 0.023, 0.028, 0.034, 0.047, 0.067, 0.159, 0.524, 3.467, 3.73, 4.634, 5.46, 6.599, 7.025, 7.032, 7.041, 7.044, 7.053, 7.101, 11.146, 12.475, 16.056, 26.238, 31.92, 38.587]}, 
+        "SWE": {"name": "Sweden", "history": [0.003, 0.003, 0.003, 0.004, 0.004, 0.004, 0.005, 0.006, 0.008, 0.009, 0.011, 0.012, 0.024, 0.043, 0.06, 0.104, 0.153, 0.244, 0.428, 0.714, 1.107, 1.606, 2.388, 3.993, 4.963]}, 
+        "CHE": {"name": "Switzerland", "history": [0.016, 0.018, 0.02, 0.022, 0.024, 0.028, 0.03, 0.037, 0.049, 0.079, 0.125, 0.222, 0.434, 0.747, 1.043, 1.36, 1.617, 1.86, 2.117, 2.425, 2.875, 3.515, 4.528, 6.094, 7.794]}, 
+        "TUR": {"name": "Turkey", "history": [0.0, 0.0, 0.001, 0.001, 0.002, 0.002, 0.003, 0.003, 0.004, 0.005, 0.006, 0.007, 0.012, 0.019, 0.041, 0.25, 0.834, 3.422, 5.064, 5.996, 6.668, 7.817, 9.426, 11.293, 19.883]}, 
+        "UKR": {"name": "Ukraine", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.003, 0.188, 0.372, 0.748, 0.819, 0.841, 0.955, 1.2, 2.003, 5.936, 7.331, 8.062, 8.062, 8.062, 5.5]}, 
+        "GBR": {"name": "United Kingdom", "history": [0.002, 0.003, 0.004, 0.006, 0.008, 0.011, 0.014, 0.018, 0.023, 0.027, 0.095, 1.0, 1.753, 2.937, 5.528, 9.601, 11.914, 12.751, 13.06, 13.345, 13.87, 14.261, 14.981, 16.275, 17.603]}, 
+        "RUS": {"name": "Russian Federation", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.306, 0.363, 0.433, 0.538, 0.828, 1.425, 1.774, 1.988, 2.148, 2.193, 2.554]}, 
+        "KAZ": {"name": "Kazakhstan", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.005, 0.057, 0.057, 0.059, 0.209, 0.542, 0.912, 1.038, 1.146, 1.306, 1.196]}, 
+        "ISR": {"name": "Israel", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.001, 0.002, 0.009, 0.031, 0.076, 0.196, 0.286, 0.446, 0.656, 0.796, 0.906, 1.006, 1.346, 2.138, 2.652, 3.591, 4.632, 5.516, 5.605]}, 
+        "JOR": {"name": "Jordan", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.057, 0.311, 0.418, 0.76, 0.971, 1.541, 1.811, 1.966, 1.99, 2.077]}, 
+        "SAU": {"name": "Saudi Arabia", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.002, 0.003, 0.014, 0.022, 0.024, 0.024, 0.024, 0.034, 0.084, 0.109, 0.409, 0.439, 0.44, 2.585, 4.34]}, 
+        "ARE": {"name": "United Arab Emirates", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.011, 0.013, 0.013, 0.126, 0.13, 0.132, 0.135, 0.353, 0.6, 1.935, 2.333, 3.002, 3.596, 5.942, 6.011]}, 
+        "DZA": {"name": "Algeria", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.025, 0.025, 0.025, 0.025, 0.028, 0.062, 0.262, 0.355, 0.367, 0.367, 0.367, 0.367, 0.451, 0.462, 0.462]}, 
+        "EGY": {"name": "Egypt", "history": [0.0, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.015, 0.035, 0.035, 0.035, 0.035, 0.036, 0.059, 0.18, 0.764, 1.647, 1.643, 1.663, 1.725, 1.856, 2.59]}, 
+        "MAR": {"name": "Morocco", "history": [0.007, 0.007, 0.008, 0.008, 0.009, 0.01, 0.011, 0.012, 0.013, 0.013, 0.034, 0.034, 0.035, 0.035, 0.04, 0.2, 0.202, 0.204, 0.734, 0.734, 0.774, 0.854, 0.854, 0.934, 0.934]}, 
+        "ZAF": {"name": "South Africa", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.002, 0.006, 0.012, 0.262, 1.164, 1.353, 2.176, 3.451, 4.805, 4.908, 5.994, 6.316, 6.326, 6.165, 6.671]}, 
+        "TUN": {"name": "Tunisia", "history": [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.002, 0.003, 0.006, 0.01, 0.017, 0.028, 0.038, 0.047, 0.064, 0.08, 0.095, 0.095, 0.197, 0.506, 0.773]}, 
+        "AUS": {"name": "Australia", "history": [0.025, 0.029, 0.034, 0.039, 0.046, 0.052, 0.061, 0.073, 0.085, 0.332, 1.091, 1.421, 2.511, 3.312, 4.137, 5.035, 5.88, 7.242, 11.128, 15.453, 19.772, 24.396, 28.887, 33.282, 38.472]}, 
+        "CHN": {"name": "China", "history": [0.034, 0.038, 0.057, 0.067, 0.077, 0.141, 0.16, 0.199, 0.253, 0.415, 1.022, 3.108, 6.719, 17.759, 28.399, 43.549, 77.819, 130.832, 175.262, 204.971, 253.864, 306.973, 393.032, 609.921, 887.93]}, 
+        "IND": {"name": "India", "history": [0.0, 0.006, 0.007, 0.008, 0.008, 0.013, 0.011, 0.029, 0.031, 0.043, 0.069, 0.569, 0.986, 1.603, 3.776, 5.697, 9.982, 18.257, 27.485, 35.25, 39.705, 49.95, 63.39, 72.859, 97.384]}, 
+        "JPN": {"name": "Japan", "history": [0.33, 0.453, 0.637, 0.86, 1.132, 1.422, 1.708, 1.919, 2.144, 2.627, 3.618, 4.914, 6.632, 13.599, 23.339, 34.15, 42.04, 49.5, 56.162, 63.192, 71.868, 78.413, 85.066, 89.077, 91.61]}, 
+        "MYS": {"name": "Malaysia", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.001, 0.001, 0.001, 0.026, 0.116, 0.171, 0.222, 0.287, 0.331, 0.481, 0.829, 1.483, 1.787, 2.131, 2.146, 2.306]}, 
+        "PAK": {"name": "Pakistan", "history": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001, 0.007, 0.009, 0.019, 0.046, 0.101, 0.165, 0.265, 0.589, 0.655, 0.68, 0.756, 0.855, 1.078, 1.244, 1.243, 1.395]}, 
+        "PHL": {"name": "Philippines", "history": [0.0, 0.0, 0.0, 0.0, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.002, 0.003, 0.007, 0.034, 0.182, 0.799, 0.924, 0.937, 1.009, 1.089, 1.413, 1.667, 1.802, 2.971]}, 
+        "KOR": {"name": "South Korea", "history": [0.004, 0.005, 0.005, 0.006, 0.009, 0.014, 0.036, 0.081, 0.357, 0.524, 0.651, 0.735, 1.039, 1.559, 2.438, 3.467, 4.338, 5.633, 7.701, 10.847, 14.756, 17.905, 20.525, 23.493, 26.645]}, 
+        "TWN": {"name": "Taiwan", "history": [0.0, 0.0, 0.0, 0.0, 0.001, 0.001, 0.001, 0.002, 0.006, 0.01, 0.035, 0.13, 0.231, 0.41, 0.636, 0.884, 1.245, 1.768, 2.738, 4.15, 5.817, 7.7, 9.724, 12.418, 14.281]}, 
+        "VNM": {"name": "Viet Nam", "history": [0.0, 0.0, 0.0, 0.0, 0.001, 0.002, 0.003, 0.003, 0.003, 0.004, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.008, 0.105, 4.994, 16.661, 16.661, 16.698, 18.588, 18.667]}
+    };
+
+    const nameToIso = {
+        "United States": "USA", "USA": "USA", "United States of America": "USA",
+        "Canada": "CAN", "Mexico": "MEX", "Argentina": "ARG", "Brazil": "BRA", "Chile": "CHL", "Honduras": "HND", "Dominican Rep.": "DOM", "Dominican Republic": "DOM",
+        "Austria": "AUT", "Belgium": "BEL", "Bulgaria": "BGR", "Czechia": "CZE", "Czech Republic": "CZE",
+        "Denmark": "DNK", "France": "FRA", "Germany": "DEU", "Greece": "GRC", "Hungary": "HUN", "Italy": "ITA", "Lithuania": "LTU", "Netherlands": "NLD",
+        "Poland": "POL", "Portugal": "PRT", "Romania": "ROU", "Slovakia": "SVK", "Slovenia": "SVN", "Spain": "ESP", "Sweden": "SWE", "Switzerland": "CHE",
+        "Turkey": "TUR", "Ukraine": "UKR", "United Kingdom": "GBR", "England": "GBR", "UK": "GBR",
+        "Russia": "RUS", "Russian Federation": "RUS", "Kazakhstan": "KAZ", "Israel": "ISR", "Jordan": "JOR", "Saudi Arabia": "SAU", "United Arab Emirates": "ARE", "UAE": "ARE",
+        "Algeria": "DZA", "Egypt": "EGY", "Morocco": "MAR", "South Africa": "ZAF", "Tunisia": "TUN",
+        "Australia": "AUS", "China": "CHN", "India": "IND", "Japan": "JPN", "Malaysia": "MYS", "Pakistan": "PAK", "Philippines": "PHL", "South Korea": "KOR", "Korea": "KOR", "Taiwan": "TWN", "Thailand": "THA", "Vietnam": "VNM", "Viet Nam": "VNM"
+    };
+
+    const svg = d3.select("#map-container").append("svg").attr("width", width).attr("height", height);
+    
+    // Implement Zoom and Pan
+    const mapLayer = svg.append("g");
+    const zoom = d3.zoom()
+        .scaleExtent() // Zoom from 1x to 8x
+        .on("zoom", (event) => {
+            mapLayer.attr("transform", event.transform);
+            mapLayer.selectAll(".country").style("stroke-width", 0.5 / event.transform.k + "px");
+            mapLayer.selectAll(".graticule").style("stroke-width", 0.5 / event.transform.k + "px");
+        });
+    svg.call(zoom);
+
+    const projection = d3.geoNaturalEarth1().scale(width / 5.5).translate([width / 2, height / 2.2]);
+    const path = d3.geoPath().projection(projection);
+
+    // Add Pro Feature: Sphere & Graticule (Grid Lines)
+    mapLayer.append("path").datum({type: "Sphere"}).attr("class", "sphere").attr("d", path);
+    mapLayer.append("path").datum(d3.geoGraticule()()).attr("class", "graticule").attr("d", path);
+
+    const tooltipDiv = document.getElementById('tooltip');
+
+    // VERY IMPORTANT: If this link fails, follow the on-screen instructions!
+    d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson").then(world => {
+        
+        if (!world || !world.features) throw new Error("Data was blocked");
+
+        const countries = mapLayer.selectAll(".country")
+            .data(world.features)
+            .enter()
+            .append("path")
+            .attr("class", "country")
+            .attr("d", path)
+            .each(function(d) { 
+                let targetId = d.id || (d.properties && (d.properties.iso_a3 || d.properties.ISO_A3));
+                if (!targetId || !historicalData[targetId]) targetId = nameToIso[d.properties.name];
+                d.mappedId = targetId; 
+                d.currentCapacity = 0;
+                d.countryName = (d.mappedId && historicalData[d.mappedId]) ? historicalData[d.mappedId].name : d.properties.name;
+            })
+            // Pro Feature: Tooltips
+            .on("mouseover", function(event, d) {
+                tooltipDiv.style.opacity = 1;
+                document.getElementById("tt-country").innerText = d.countryName;
+                document.getElementById("tt-val").innerText = d.currentCapacity.toFixed(2);
+            })
+            .on("mousemove", function(event) {
+                tooltipDiv.style.left = event.pageX + "px";
+                tooltipDiv.style.top = event.pageY + "px";
+            })
+            .on("mouseout", function() {
+                tooltipDiv.style.opacity = 0;
+            });
+
+        function update(yearIndex) {
+            const currentYear = 2000 + parseInt(yearIndex);
+            document.getElementById('year-label').innerText = currentYear;
+
+            let totalGlobalGen = 0; 
+            let activeProducers = [];
+
+            Object.keys(historicalData).forEach(key => {
+                const capacity = historicalData[key].history[yearIndex];
+                if (capacity > 0) {
+                    totalGlobalGen += capacity;
+                    activeProducers.push({ name: historicalData[key].name, capacity: capacity });
+                }
+            });
+
+            // Update Map Colors
+            countries.style("fill", d => {
+                const capacity = (d.mappedId && historicalData[d.mappedId]) ? historicalData[d.mappedId].history[yearIndex] : 0;
+                d.currentCapacity = capacity; 
+                
+                if (!capacity || capacity === 0) return "#15151a"; 
+                if (capacity < 2) return "#ffd54f";   
+                if (capacity < 15) return "#ff9800";  
+                if (capacity < 50) return "#f44336";  
+                return "#b71c1c";                     
+            });
+
+            if (tooltipDiv.style.opacity == 1) {
+                document.getElementById("tt-val").innerText = document.getElementById("tt-val").innerText;
+            }
+
+            document.getElementById('global-gen').innerText = totalGlobalGen.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+            
+            const top5 = activeProducers.sort((a,b) => b.capacity - a.capacity).slice(0, 5);
+            document.getElementById('leaderboard').innerHTML = top5.map((p, i) => `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                    <span>${i+1}. ${p.name}</span>
+                    <span style="color:#ffd700; font-family: monospace;">${p.capacity.toFixed(1)} GW</span>
+                </div>
+            `).join("");
+        }
+        
+        const slider = document.getElementById('slider');
+        slider.addEventListener('input', (e) => update(e.target.value - 2000));
+        
+        let playInterval;
+        let isPlaying = false;
+        const playBtn = document.getElementById('play-btn');
+
+        playBtn.onclick = () => {
+            if (isPlaying) {
+                clearInterval(playInterval);
+                playBtn.innerText = "▶ Play Timeline";
+                isPlaying = false;
+            } else {
+                if (parseInt(slider.value) >= 2024) slider.value = 2000; 
+                playBtn.innerText = "⏸ Pause Timeline";
+                isPlaying = true;
+                playInterval = setInterval(() => {
+                    let currentVal = parseInt(slider.value);
+                    if (currentVal < 2024) {
+                        slider.value = currentVal + 1;
+                        update(slider.value - 2000);
+                        
+                        const activeHover = d3.select(".country:hover").datum();
+                        if (activeHover) {
+                            document.getElementById("tt-val").innerText = activeHover.currentCapacity.toFixed(2);
+                        }
+                    } else {
+                        clearInterval(playInterval);
+                        playBtn.innerText = "▶ Play Timeline";
+                        isPlaying = false;
+                    }
+                }, 300); 
+            }
+        };
+
+        update(0); 
+
+    }).catch(error => {
+        // If it gets here, your local network blocked the file download. 
+        console.error(error);
+        document.getElementById('error-msg').style.display = 'block';
+    });
+</script>
+</body>
+</html>
