@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vieques - Simultaneous Display</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            font-family: sans-serif;
+        }
+        .row {
+            display: flex;
+            width: 100%;
+        }
+        .column {
+            flex: 33.33%;
+            padding: 5px;
+        }
+        img {
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Vieques Aerial Imagery: 1937, 1977, 2010</h1>
+    <p>Over the three distinct time periods (1937, 1977, and 2010), significant alterations in land use and vegetation cover are evident across the landscape. The earlier photographs reveal extensive clearings and established road networks. By 2010, the imagery shows substantial secondary vegetation regrowth reclaiming previously cleared areas, alongside the distinct appearance of specific geometric structures and target zones in the central region, reflecting the area's complex history of use and subsequent natural succession.</p>
+    
+    <div class="row">
+        <div class="column">
+            <h3>1937</h3>
+            <img src="./images/v1937.jpg" alt="Vieques 1937">
+        </div>
+        <div class="column">
+            <h3>1977</h3>
+            <img src="./images/v1977.jpg" alt="Vieques 1977">
+        </div>
+        <div class="column">
+            <h3>2010</h3>
+            <img src="./images/v2010.jpg" alt="Vieques 2010">
+        </div>
+    </div>
+</body>
+</html>

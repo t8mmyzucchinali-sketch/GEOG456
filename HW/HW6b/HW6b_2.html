@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vieques - Slider Transition</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            font-family: sans-serif;
+        }
+        .image_container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-top: 20px;
+        }
+        img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: auto;
+        }
+        #img1937 { z-index: 1; opacity: 1; position: relative; }
+        #img1977 { z-index: 2; opacity: 0; }
+        #img2010 { z-index: 3; opacity: 0; }
+        
+        input[type=range] {
+            width: 100%;
+            max-width: 800px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Vieques Image Slider</h1>
+    <p>Over the three distinct time periods (1937, 1977, and 2010), significant alterations in land use and vegetation cover are evident across the landscape. The earlier photographs reveal extensive clearings and established road networks. By 2010, the imagery shows substantial secondary vegetation regrowth reclaiming previously cleared areas, alongside the distinct appearance of specific geometric structures and target zones in the central region, reflecting the area's complex history of use and subsequent natural succession.</p>
+    
+    <label for="timeline">Slide to progress through time (1937 -> 1977 -> 2010):</label><br>
+    <input type="range" id="timeline" min="0" max="100" value="0" oninput="updateImages(this.value)">
+    
+    <div class="image_container">
+        <img id="img1937" src="./images/v1937.jpg" alt="1937 Base">
+        <img id="img1977" src="./images/v1977.jpg" alt="1977 Transition">
+        <img id="img2010" src="./images/v2010.jpg" alt="2010 Final">
+    </div>
+
+    <script>
+        function updateImages(val) {
+            let img1977 = document.getElementById('img1977');
+            let img2010 = document.getElementById('img2010');
+            
+            if (val <= 50) {
+                img1977.style.opacity = val / 50;
+                img2010.style.opacity = 0;
+            } 
+            else {
+                img1977.style.opacity = 1;
+                img2010.style.opacity = (val - 50) / 50;
+            }
+        }
+    </script>
+</body>
+</html>
